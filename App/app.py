@@ -66,6 +66,7 @@ st.markdown("""
         height: 200%;
         background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
         animation: rotate 20s linear infinite;
+        will-change: transform;
     }
 
     @keyframes rotate {
@@ -121,7 +122,7 @@ st.markdown("""
         border-radius: 18px;
         padding: 1.8rem 1.5rem;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
     }
 
     div[data-testid="metric-container"]:hover {
@@ -153,6 +154,7 @@ st.markdown("""
         border: 1px solid rgba(255, 255, 255, 0.15);
         transition: all 0.3s ease;
         color: white !important;
+        position: relative;
     }
 
     .stSelectbox:hover, .stNumberInput:hover {
@@ -160,7 +162,7 @@ st.markdown("""
         border-color: rgba(102, 126, 234, 0.5);
     }
 
-    /* Force input text visible */
+    /* Force input text and placeholder visible */
     .stSelectbox div[role="combobox"] > div,
     .stSelectbox span,
     .stNumberInput > div > input,
@@ -169,12 +171,32 @@ st.markdown("""
         font-weight: 500;
     }
 
+    input::placeholder {
+        color: rgba(255,255,255,0.5) !important;
+    }
+
     input, select {
         background: rgba(255, 255, 255, 0.15) !important;
         color: white !important;
         border: 1px solid rgba(255, 255, 255, 0.2) !important;
         border-radius: 10px !important;
         padding: 0.8rem !important;
+    }
+
+    /* Hide native dropdown arrow */
+    .stSelectbox div[role="combobox"] > div > svg {
+        display: none !important;
+    }
+
+    /* Custom arrow */
+    .stSelectbox div[role="combobox"]::after {
+        content: '▾';
+        color: white;
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
     }
 
     /* Button */
@@ -270,6 +292,14 @@ st.markdown("""
         height: 1px;
         background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
         margin: 3rem 0;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .main-header h1 { font-size: 2.2rem; }
+        .glass-container { padding: 1rem; }
+        .section-header { font-size: 1.6rem; }
+        .stButton > button { font-size: 1.1rem; padding: 1rem 2rem; }
     }
 </style>
 """, unsafe_allow_html=True)
