@@ -5,206 +5,365 @@ import joblib
 import altair as alt
 import os
 
-# === PAGE CONFIGURATION ===
+# PAGE CONFIGURATION
 st.set_page_config(
     page_title="U.S. Foreign Aid Funding Predictor",
-    page_icon="💰",
-    layout="centered",
+    page_icon="💼",
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
-# === LOAD HISTORICAL DATA ===
+# ENHANCED CUSTOM CSS
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+
+    * { font-family: 'Inter', sans-serif; }
+
+    .stApp {
+        background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e);
+        background-size: 400% 400%;
+        animation: gradientShift 20s ease infinite;
+    }
+
+    @keyframes gradientShift {
+        0% {background-position: 0% 50%;}
+        50% {background-position: 100% 50%;}
+        100% {background-position: 0% 50%;}
+    }
+
+    /* Glassmorphism containers */
+    .glass-container {
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 2rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Main header */
+    .main-header {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 3rem 2rem;
+        border-radius: 25px;
+        margin-bottom: 3rem;
+        color: white;
+        box-shadow: 0 15px 50px rgba(102, 126, 234, 0.4);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .main-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        animation: rotate 20s linear infinite;
+    }
+
+    @keyframes rotate {
+        0% {transform: rotate(0deg);}
+        100% {transform: rotate(360deg);}
+    }
+
+    .main-header h1 {
+        margin: 0;
+        font-size: 3.2rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #fff 0%, #a8b9ff 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        position: relative;
+        z-index: 1;
+        letter-spacing: -1px;
+    }
+
+    .main-header p {
+        margin: 1rem 0 0 0;
+        font-size: 1.3rem;
+        font-weight: 400;
+        opacity: 0.95;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Section headers */
+    .section-header {
+        color: white;
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 3rem 0 1.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+    }
+
+    .section-header::before {
+        content: '';
+        width: 5px;
+        height: 35px;
+        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+    }
+
+    /* Metrics styling */
+    div[data-testid="metric-container"] {
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 18px;
+        padding: 1.8rem 1.5rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    div[data-testid="metric-container"]:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 15px 45px rgba(102, 126, 234, 0.4);
+        background: rgba(255, 255, 255, 0.18);
+    }
+
+    div[data-testid="metric-container"] label {
+        color: rgba(255, 255, 255, 0.8) !important;
+        font-size: 0.95rem !important;
+        font-weight: 600 !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    div[data-testid="metric-container"] [data-testid="stMetricValue"] {
+        color: white !important;
+        font-size: 2rem !important;
+        font-weight: 800 !important;
+    }
+
+    /* Inputs (Selectbox, NumberInput, Radio) */
+    .stSelectbox, .stNumberInput, .stRadio {
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(15px);
+        border-radius: 15px;
+        padding: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        transition: all 0.3s ease;
+        color: white !important;
+    }
+
+    .stSelectbox:hover, .stNumberInput:hover {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(102, 126, 234, 0.5);
+    }
+
+    /* Force input text visible */
+    .stSelectbox div[role="combobox"] > div,
+    .stSelectbox span,
+    .stNumberInput > div > input,
+    .stRadio > div {
+        color: white !important;
+        font-weight: 500;
+    }
+
+    input, select {
+        background: rgba(255, 255, 255, 0.15) !important;
+        color: white !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        border-radius: 10px !important;
+        padding: 0.8rem !important;
+    }
+
+    /* Button */
+    .stButton > button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-size: 1.3rem;
+        font-weight: 700;
+        padding: 1.2rem 3rem;
+        border-radius: 15px;
+        border: none;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        width: 100%;
+        margin-top: 1.5rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .stButton > button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 45px rgba(102, 126, 234, 0.6);
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    }
+
+    .stButton > button:active {
+        transform: translateY(-1px);
+    }
+
+    /* Success box */
+    .success-box {
+        background: linear-gradient(135deg, rgba(17, 153, 142, 0.3) 0%, rgba(56, 239, 125, 0.3) 100%);
+        backdrop-filter: blur(20px);
+        border: 2px solid rgba(56, 239, 125, 0.5);
+        color: white;
+        padding: 2.5rem;
+        border-radius: 20px;
+        font-size: 1.5rem;
+        font-weight: 700;
+        text-align: center;
+        margin: 2rem 0;
+        box-shadow: 0 15px 50px rgba(56, 239, 125, 0.3);
+        animation: slideIn 0.6s ease-out;
+    }
+
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .success-box strong {
+        font-size: 2rem;
+        display: block;
+        margin-top: 1rem;
+        background: linear-gradient(135deg, #38ef7d 0%, #11998e 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* Chart container */
+    .stAltairChart {
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Footer */
+    .footer {
+        text-align: center;
+        padding: 2.5rem;
+        margin-top: 2rem;
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 1.1rem;
+    }
+
+    .footer strong {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 1.3rem;
+    }
+
+    /* Divider */
+    hr {
+        border: none;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        margin: 3rem 0;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# LOAD DATA AND MODEL
 @st.cache_data
 def load_data():
-    path = "modeling data.csv"
-    if not os.path.exists(path):
-        st.error(f"❌ File not found: {path}. Make sure it’s uploaded or in the same directory.")
+    if not os.path.exists("modeling data.csv"):
+        st.error("❌ Missing 'modeling data.csv'")
         st.stop()
-    return pd.read_csv(path)
+    return pd.read_csv("modeling data.csv")
 
-# --- Check if the environment has the capability to run the app (simulating load) ---
-# NOTE: In a real environment, the app would stop here if the file is missing.
-try:
-    df_history = load_data()
-except Exception:
-    df_history = None # Allow the rest of the app to render with appropriate errors
-
-# === LOAD XGBOOST PIPELINE ===
 @st.cache_resource
 def load_model():
     try:
-        model = joblib.load("best_xgb_pipeline.pkl")
-        return model
+        return joblib.load("best_xgb_pipeline.pkl")
     except FileNotFoundError:
-        st.error("❌ Model file not found. Ensure 'best_xgb_pipeline.pkl' is in the app folder.")
+        st.error("❌ Missing 'best_xgb_pipeline.pkl'")
         return None
 
+df = load_data()
 model_pipeline = load_model()
 
-# === HEADER ===
-st.title("💰 U.S. Foreign Aid Funding Predictor")
+# HEADER
 st.markdown("""
-Forecast **future U.S. foreign aid allocations** using an optimized **XGBoost machine learning model**. 
-All required temporal and historical features are computed automatically.
-""")
-st.divider()
+<div class="main-header">
+    <h1>💼 U.S. Foreign Aid Funding Predictor</h1>
+    <p>Advanced machine learning forecasting for strategic resource allocation in Kenya's socio-economic sectors</p>
+</div>
+""", unsafe_allow_html=True)
 
-# Only proceed with inputs and prediction if data is available for generating lists
-if df_history is not None:
-    # === INPUT SECTION ===
-    st.header("Inputs")
+# OVERVIEW DASHBOARD
+st.markdown('<p class="section-header">📊 Overview Dashboard</p>', unsafe_allow_html=True)
+col1, col2, col3, col4 = st.columns(4)
+col1.metric("📁 Total Records", f"{len(df):,}")
+col2.metric("🏛️ Agencies", f"{df['managing_agency_name'].nunique()}")
+col3.metric("🎯 Sectors", f"{df['sector'].nunique()}")
+col4.metric("💰 Total Funding", f"${df['constant_dollar_amount'].sum()/1e9:.1f}B")
 
-    with st.expander("Set Prediction Parameters", expanded=True):
-        col1, col2 = st.columns(2)
-        with col1:
-            fiscal_year = st.number_input("Fiscal Year", 2000, 2100, 2025, 1)
-            is_refund = st.radio("Refund Status", [0, 1], format_func=lambda x: "No" if x == 0 else "Yes")
-        with col2:
-            managing_agency_name = st.selectbox(
-                "Managing Agency", 
-                sorted(df_history['managing_agency_name'].unique())
-            )
-            funding_agency_name = st.selectbox(
-                "Funding Agency", 
-                sorted(df_history['funding_agency_name'].unique())
-            )
+# INPUTS & PREDICTION
+st.markdown('<p class="section-header">🔮 Prediction Engine</p>', unsafe_allow_html=True)
 
-        sector = st.selectbox("Sector", sorted(df_history['sector'].unique()))
+with st.container():
+    col1, col2 = st.columns(2)
+    with col1:
+        fiscal_year = st.number_input("Fiscal Year", 2000, 2100, 2025)
+        managing_agency_name = st.selectbox("Managing Agency", sorted(df['managing_agency_name'].unique()))
+    with col2:
+        funding_agency_name = st.selectbox("Funding Agency", sorted(df['funding_agency_name'].unique()))
+        sector = st.selectbox("Sector", sorted(df['sector'].unique()))
+    is_refund = st.radio("Refund Status", [0,1], format_func=lambda x: "No" if x==0 else "Yes", horizontal=True)
 
-    st.divider()
+def compute_features(df, year, agency, fund_agency, sector, refund):
+    df_filtered = df[(df['managing_agency_name']==agency) & (df['funding_agency_name']==fund_agency) & (df['sector']==sector)].sort_values('fiscal_year')
+    lag_1 = df_filtered.loc[df_filtered['fiscal_year']==year-1,'constant_dollar_amount'].values
+    lag_2 = df_filtered.loc[df_filtered['fiscal_year']==year-2,'constant_dollar_amount'].values
+    lag_1 = lag_1[0] if len(lag_1)>0 else 0
+    lag_2 = lag_2[0] if len(lag_2)>0 else 0
+    last_3 = df_filtered[df_filtered['fiscal_year'].isin([year-1,year-2,year-3])]
+    rolling_mean_3yr = last_3['constant_dollar_amount'].mean() if not last_3.empty else 0
+    rolling_std_3yr = last_3['constant_dollar_amount'].std() if not last_3.empty else 0
+    funding_growth_rate = ((lag_1-lag_2)/lag_2) if lag_2!=0 else 0
+    transaction_type_name = df_filtered['transaction_type_name'].mode().values[0] if not df_filtered.empty else 'Grant'
+    return pd.DataFrame([{"fiscal_year":year,"is_refund":refund,"managing_agency_name":agency,"funding_agency_name":fund_agency,"sector":sector,"lag_1":lag_1,"lag_2":lag_2,"rolling_mean_3yr":rolling_mean_3yr,"rolling_std_3yr":rolling_std_3yr,"funding_growth_rate":funding_growth_rate,"transaction_type_name":transaction_type_name}])
 
-    # === FEATURE ENGINEERING FUNCTION ===
-    def compute_features(history_df, year, agency, fund_agency, sector, is_refund):
-        df_filtered = history_df[
-            (history_df['managing_agency_name'] == agency) &
-            (history_df['funding_agency_name'] == fund_agency) &
-            (history_df['sector'] == sector)
-        ].sort_values('fiscal_year')
-
-        # Lag features
-        lag_1 = df_filtered.loc[df_filtered['fiscal_year'] == year-1, 'constant_dollar_amount'].values
-        lag_1 = lag_1[0] if len(lag_1) > 0 else 0
-
-        lag_2 = df_filtered.loc[df_filtered['fiscal_year'] == year-2, 'constant_dollar_amount'].values
-        lag_2 = lag_2[0] if len(lag_2) > 0 else 0
-
-        # Rolling statistics
-        last_3 = df_filtered[df_filtered['fiscal_year'].isin([year-1, year-2, year-3])]
-        rolling_mean_3yr = last_3['constant_dollar_amount'].mean() if not last_3.empty else 0
-        rolling_std_3yr = last_3['constant_dollar_amount'].std() if not last_3.empty else 0
-
-        # Growth rate
-        funding_growth_rate = ((lag_1 - lag_2) / lag_2) if lag_2 != 0 else 0
-
-        # Transaction type
-        # Mode is generally safer for categorical imputation, use 'Grant' as an absolute fallback
-        transaction_type_name = df_filtered['transaction_type_name'].mode().values[0] if not df_filtered.empty and not df_filtered['transaction_type_name'].mode().empty else "Grant"
-
-        return pd.DataFrame([{
-            "fiscal_year": year,
-            "is_refund": is_refund,
-            "managing_agency_name": agency,
-            "funding_agency_name": fund_agency,
-            "sector": sector,
-            "lag_1": lag_1,
-            "lag_2": lag_2,
-            "rolling_mean_3yr": rolling_mean_3yr,
-            "rolling_std_3yr": rolling_std_3yr,
-            "funding_growth_rate": funding_growth_rate,
-            "transaction_type_name": transaction_type_name
-        }])
-
-    # === HISTORICAL TREND VISUALIZATION ===
-    df_plot = df_history[
-        (df_history['managing_agency_name'] == managing_agency_name) &
-        (df_history['funding_agency_name'] == funding_agency_name) &
-        (df_history['sector'] == sector)
-    ].sort_values('fiscal_year')
-
-    sector_avg = (
-        df_history[df_history['sector'] == sector]
-        .groupby('fiscal_year')['constant_dollar_amount']
-        .mean()
-        .reset_index()
-    )
-
-    if not df_plot.empty:
-        st.subheader("Historical Funding Trend")
-        st.markdown(
-            f"<p style='font-size:13px;color:gray;'>Comparing <b>{sector}</b> funding trajectory vs. sector-wide average.</p>",
-            unsafe_allow_html=True
-        )
-
-        base = alt.Chart(df_plot).mark_line(point=True, color='#0077b6').encode(
-            x='fiscal_year:O',
-            y=alt.Y('constant_dollar_amount:Q', title='Funding (USD)'),
-            tooltip=[alt.Tooltip('fiscal_year', title='Year'), alt.Tooltip('constant_dollar_amount', title='Amount', format='$,.2f')]
-        )
-
-        avg_line = alt.Chart(sector_avg).mark_line(
-            strokeDash=[5, 5],
-            color='#adb5bd'
-        ).encode(
-            x='fiscal_year:O',
-            y='constant_dollar_amount:Q',
-            tooltip=[alt.Tooltip('fiscal_year', title='Year'), alt.Tooltip('constant_dollar_amount', title='Sector Avg', format='$,.2f')]
-        )
-
-        st.altair_chart(base + avg_line, use_container_width=True)
+if st.button("🚀 Generate Forecast"):
+    if model_pipeline is not None:
+        input_data = compute_features(df,fiscal_year,managing_agency_name,funding_agency_name,sector,is_refund)
+        pred_log = model_pipeline.predict(input_data)[0]
+        pred = max(0, np.expm1(pred_log))
+        st.markdown(f"""<div class="success-box">💰 Predicted Allocation for {sector}<br><strong>${pred:,.2f}</strong><br><small>Fiscal Year {fiscal_year}</small></div>""", unsafe_allow_html=True)
     else:
-        st.info("No historical records found for this combination — prediction will rely on inferred patterns.")
+        st.error("Model not loaded — unable to generate forecast.")
 
-    st.divider()
+# HISTORICAL TRENDS
+st.markdown('<p class="section-header">📈 Historical Trends Analysis</p>', unsafe_allow_html=True)
+col1, col2 = st.columns(2)
+with col1:
+    agency_sel = st.selectbox("Select Agency", sorted(df['managing_agency_name'].unique()), key='trend_agency')
+with col2:
+    sector_sel = st.selectbox("Select Sector", sorted(df['sector'].unique()), key='trend_sector')
 
-    # === PREDICTION SECTION ===
-    if st.button("🔮 Generate Forecast"):
-        if model_pipeline is not None:
-            input_data = compute_features(df_history, fiscal_year, managing_agency_name, funding_agency_name, sector, is_refund)
-            
-            # Ensure all required columns for the pipeline are present (even if zero/defaulted)
-            # This is a safety measure, though compute_features should handle it.
-            required_cols = list(input_data.columns) # Assuming the pipeline was trained on these columns
-            input_data = input_data[required_cols]
+df_plot = df[(df['managing_agency_name']==agency_sel)&(df['sector']==sector_sel)]
 
-            log_pred = model_pipeline.predict(input_data)
-            # Assuming the model predicts log(amount + 1), reverse the transformation
-            prediction = np.expm1(log_pred)[0] 
-            
-            # Prevent negative predictions (though expm1 should prevent values < -1)
-            prediction = max(0, prediction) 
-
-            # Determine previous year's funding (if available)
-            prev_funding = df_plot.loc[df_plot['fiscal_year'] == fiscal_year - 1, 'constant_dollar_amount']
-            if not prev_funding.empty:
-                prev_val = prev_funding.values[0]
-                diff = prediction - prev_val
-                pct_change = (diff / prev_val) * 100 if prev_val != 0 else 0
-                trend_icon = "📈" if diff > 0 else "📉" if diff < 0 else "⏸️"
-                trend_text = f"{trend_icon} {'Increase' if diff > 0 else 'Decrease' if diff < 0 else 'No Change'} of {abs(pct_change):.2f}% from {fiscal_year - 1}"
-            else:
-                trend_text = "No previous year data available for comparison."
-
-            st.markdown(f"""
-            <div style='
-                background: linear-gradient(135deg, #E6FFFA, #DFF6FF);
-                padding: 2em;
-                border-radius: 16px;
-                text-align: center;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            '>
-                <h2 style='color:#004d61;margin-bottom:0;'>💵 ${prediction:,.2f}</h2>
-                <p style='margin-top:0.5em;color:#007b83;font-size:17px;'>
-                    Estimated U.S. Foreign Aid Allocation for <b>{sector}</b><br>
-                    Managed by <b>{managing_agency_name}</b> in Fiscal Year <b>{fiscal_year}</b>.
-                </p>
-                <p style='font-size:15px;color:#006D77;'><i>{trend_text}</i></p>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.error("Model not loaded — unable to generate forecast.")
-
-    # === FOOTER ===
-    st.divider()
-    st.markdown("""
-    *Developed by **Ahjin Analytics*** """)
+if df_plot.empty:
+    st.info("📊 No data available for this combination.")
 else:
-    st.warning("Please upload `modeling data.csv` to enable the application inputs.")
+    chart = alt.Chart(df_plot).mark_line(point=True, color='#667eea', strokeWidth=3).encode(
+        x=alt.X('fiscal_year:O', title='Fiscal Year'),
+        y=alt.Y('constant_dollar_amount:Q', title='Funding Amount (USD)'),
+        tooltip=['fiscal_year','constant_dollar_amount']
+    ).properties(height=450, title=f"Funding Trends: {agency_sel} - {sector_sel}")
+    st.altair_chart(chart, use_container_width=True)
+
+# FOOTER
+st.markdown("---")
+st.markdown('<div class="footer"><p><strong>Developed by Ahjin Analytics</strong><br>Empowering data-driven decisions for global impact</p></div>', unsafe_allow_html=True)
